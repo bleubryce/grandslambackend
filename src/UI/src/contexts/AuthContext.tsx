@@ -1,104 +1,89 @@
-
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { authService, User, LoginResponse, ApiResponse } from '../services/api';
-import { config } from '../config';
+import authService from '../services/auth.service';
+import config from '../config';
 import { useToast } from '@/hooks/use-toast';
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+}
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
-  login: (credentials: { username: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<boolean>;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    checkAuth().finally(() => setLoading(false));
+    checkAuth();
   }, []);
 
-  const checkAuth = async (): Promise<boolean> => {
-    const token = localStorage.getItem(config.auth.tokenKey);
-    if (!token) {
-      return false;
-    }
-
+  const checkAuth = async () => {
     try {
-      // We'd normally validate the token here via an API call
-      // This is a placeholder until we have a real endpoint
-      const userData = JSON.parse(localStorage.getItem('user_data') || 'null');
-      if (userData) {
-        setUser(userData);
-        return true;
+      if (authService.isAuthenticated()) {
+        const token = authService.getToken();
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          setUser({
+            id: payload.sub,
+            username: payload.username,
+            email: payload.email,
+            role: payload.role,
+          });
+        }
       }
-      return false;
     } catch (error) {
-      console.error('Token validation failed:', error);
-      localStorage.removeItem(config.auth.tokenKey);
-      localStorage.removeItem('user_data');
-      return false;
+      console.error('Auth check failed:', error);
+      setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const login = async (credentials: { username: string; password: string }) => {
-    setLoading(true);
+  const login = async (username: string, password: string) => {
     try {
-      const response = await authService.login(credentials);
-      const { token, user } = response.data.data;
-      localStorage.setItem(config.auth.tokenKey, token);
-      localStorage.setItem('user_data', JSON.stringify(user));
-      setUser(user);
+      setIsLoading(true);
+      const response = await authService.login({ username, password });
+      setUser(response.user);
       toast({
-        title: 'Welcome back!',
-        description: `You've successfully logged in as ${user.username}`,
+        title: "Success",
+        description: "Successfully logged in",
       });
     } catch (error) {
       console.error('Login failed:', error);
+      toast({
+        title: "Error",
+        description: "Login failed. Please check your credentials.",
+        variant: "destructive",
+      });
       throw error;
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const logout = async () => {
-    setLoading(true);
-    try {
-      await authService.logout();
-    } catch (error) {
-      console.error('Logout API call failed:', error);
-      // Continue with logout process even if API call fails
-    } finally {
-      localStorage.removeItem(config.auth.tokenKey);
-      localStorage.removeItem('user_data');
-      setUser(null);
-      setLoading(false);
-      toast({
-        title: 'Logged out',
-        description: 'You have been successfully logged out',
-      });
-    }
+  const logout = () => {
+    authService.logout();
+    setUser(null);
+    toast({
+      title: "Success",
+      description: "Successfully logged out",
+    });
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      login, 
-      logout, 
-      checkAuth,
-      isAuthenticated: !!user 
-    }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
@@ -106,7 +91,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

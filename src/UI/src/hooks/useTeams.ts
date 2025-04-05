@@ -1,71 +1,70 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { teamService, Team } from '../services/api';
+import teamService, { Team } from '../services/team.service';
 import { mlbService } from '../services/mlbService';
 import { useToast } from '@/hooks/use-toast';
 import BaseballApi from '../services/baseballApi';
 
 export const useTeams = () => {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Get all teams (now using mlbService)
   const { data: teams, isLoading, error } = useQuery({
     queryKey: ['teams'],
-    queryFn: async () => {
-      try {
-        // Fetch from MLB API
-        const mlbTeams = await mlbService.getTeams();
-        if (mlbTeams.length > 0) {
-          return mlbTeams;
-        }
-        
-        // Fallback to our API if MLB API fails
-        const response = await teamService.getTeams();
-        return response.data.data;
-      } catch (err) {
-        console.error("Error fetching teams:", err);
-        // Fallback to our API if MLB API fails
-        const response = await teamService.getTeams();
-        return response.data.data;
-      }
+    queryFn: teamService.getTeams,
+  });
+
+  const createTeam = useMutation({
+    mutationFn: teamService.createTeam,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams'] });
+      toast({
+        title: 'Success',
+        description: 'Team created successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create team',
+        variant: 'destructive',
+      });
     },
   });
 
-  // Create a new team
-  const createTeamMutation = useMutation({
-    mutationFn: (newTeam: Omit<Team, 'id'>) => teamService.createTeam(newTeam),
+  const updateTeam = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Team> }) =>
+      teamService.updateTeam(id, data),
     onSuccess: () => {
-      toast({
-        title: 'Team created',
-        description: 'The team has been created successfully',
-      });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      toast({
+        title: 'Success',
+        description: 'Team updated successfully',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update team',
+        variant: 'destructive',
+      });
     },
   });
 
-  // Update a team
-  const updateTeamMutation = useMutation({
-    mutationFn: ({ id, team }: { id: number; team: Partial<Team> }) => 
-      teamService.updateTeam(id, team),
+  const deleteTeam = useMutation({
+    mutationFn: teamService.deleteTeam,
     onSuccess: () => {
-      toast({
-        title: 'Team updated',
-        description: 'The team has been updated successfully',
-      });
       queryClient.invalidateQueries({ queryKey: ['teams'] });
+      toast({
+        title: 'Success',
+        description: 'Team deleted successfully',
+      });
     },
-  });
-
-  // Delete a team
-  const deleteTeamMutation = useMutation({
-    mutationFn: (id: number) => teamService.deleteTeam(id),
-    onSuccess: () => {
+    onError: (error) => {
       toast({
-        title: 'Team deleted',
-        description: 'The team has been deleted successfully',
+        title: 'Error',
+        description: 'Failed to delete team',
+        variant: 'destructive',
       });
-      queryClient.invalidateQueries({ queryKey: ['teams'] });
     },
   });
 
@@ -144,9 +143,9 @@ export const useTeams = () => {
     teams,
     isLoading,
     error,
-    createTeam: createTeamMutation.mutate,
-    updateTeam: updateTeamMutation.mutate,
-    deleteTeam: deleteTeamMutation.mutate,
+    createTeam,
+    updateTeam,
+    deleteTeam,
     getTeamWithRoster,
     getTeamAnalytics,
   };

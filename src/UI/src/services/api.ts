@@ -10,6 +10,8 @@ import {
   ModelAnalysisResponse,
   ErrorResponse
 } from '../types/api';
+import { playerService, type Player } from './player.service';
+import { gameService, type Game } from './game.service';
 
 class BaseballApi {
   private api: AxiosInstance;
@@ -117,5 +119,7 @@ const apiConfig: ApiConfig = {
   }
 };
 
+export { playerService, gameService };
+export type { Player, Game };
 export const baseballApi = BaseballApi.getInstance(apiConfig);
 export default baseballApi;
