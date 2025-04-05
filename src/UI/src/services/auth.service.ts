@@ -6,6 +6,13 @@ interface LoginCredentials {
   password: string;
 }
 
+interface RegisterCredentials {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
 interface AuthResponse {
   token: string;
   user: {
@@ -19,6 +26,7 @@ interface AuthResponse {
 class AuthService {
   private api: AxiosInstance;
   private static TOKEN_KEY = 'auth_token';
+  private static REMEMBER_ME_KEY = 'remember_me';
 
   constructor() {
     this.api = axios.create({
@@ -50,10 +58,40 @@ class AuthService {
     );
   }
 
-  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  async register(credentials: RegisterCredentials): Promise<void> {
+    try {
+      await this.api.post('/api/auth/register', credentials);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  }
+
+  async verifyEmail(token: string): Promise<void> {
+    try {
+      await this.api.post('/api/auth/verify-email', { token });
+    } catch (error) {
+      console.error('Email verification failed:', error);
+      throw error;
+    }
+  }
+
+  async resendVerificationEmail(email: string): Promise<void> {
+    try {
+      await this.api.post('/api/auth/resend-verification', { email });
+    } catch (error) {
+      console.error('Resend verification failed:', error);
+      throw error;
+    }
+  }
+
+  async login(credentials: LoginCredentials, rememberMe: boolean = false): Promise<AuthResponse> {
     try {
       const response = await this.api.post<AuthResponse>('/api/auth/login', credentials);
       this.setToken(response.data.token);
+      if (rememberMe) {
+        localStorage.setItem(AuthService.REMEMBER_ME_KEY, 'true');
+      }
       return response.data;
     } catch (error) {
       console.error('Login failed:', error);
@@ -61,9 +99,36 @@ class AuthService {
     }
   }
 
+  async requestPasswordReset(email: string): Promise<void> {
+    try {
+      await this.api.post('/api/auth/request-password-reset', { email });
+    } catch (error) {
+      console.error('Password reset request failed:', error);
+      throw error;
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      await this.api.post('/api/auth/reset-password', { token, newPassword });
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
+  }
+
+  async updateProfile(userId: string, data: any): Promise<void> {
+    try {
+      await this.api.put(`/api/users/${userId}/profile`, data);
+    } catch (error) {
+      console.error('Profile update failed:', error);
+      throw error;
+    }
+  }
+
   logout(): void {
     localStorage.removeItem(AuthService.TOKEN_KEY);
-    // Clear any user data from state management if you're using any
+    localStorage.removeItem(AuthService.REMEMBER_ME_KEY);
   }
 
   getToken(): string | null {
@@ -85,6 +150,10 @@ class AuthService {
     } catch {
       return false;
     }
+  }
+
+  isRememberMeEnabled(): boolean {
+    return localStorage.getItem(AuthService.REMEMBER_ME_KEY) === 'true';
   }
 
   // Method to get authenticated API instance
