@@ -1,66 +1,47 @@
 import express from 'express';
 import cors from 'cors';
-import { AnalysisEngine } from './Analysis/Engine/AnalysisEngine';
-import { DatabaseManager } from './Database/DatabaseManager';
-import { SecurityService } from './Security/service';
-import { securityConfig } from './Security/config';
+import helmet from 'helmet';
 import { config } from './config';
+import { logger } from './utils/logger';
+import { DatabaseManager } from './Database/DatabaseManager';
+import authRoutes from './Security/routes';
+import analysisRoutes from './Analysis/routes';
 
 const app = express();
-const port = process.env.PORT || 3000;
 
-// Initialize security service
-const securityService = new SecurityService();
-
-// CORS configuration
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  maxAge: 86400 // 24 hours
-};
+// Initialize database
+const dbManager = new DatabaseManager(config.database);
 
 // Middleware
-app.use(cors(corsOptions));
+app.use(helmet());
+app.use(cors(config.security.cors));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Apply rate limiting to all routes
-app.use(securityService.getRateLimiterMiddleware());
-
-// Database connection
-const dbManager = new DatabaseManager(config.database);
-
-// Initialize analysis engine after getting a database connection
-let analysisEngine: AnalysisEngine;
-(async () => {
-  const dbClient = await dbManager.getConnection();
-  analysisEngine = new AnalysisEngine(dbClient, config.analysis);
-})().catch(err => {
-  console.error('Failed to initialize analysis engine:', err);
-  process.exit(1);
-});
-
 // Routes
-app.use('/api/auth', require('./Security/routes'));
-app.use('/api/analysis', require('./Analysis/routes'));
+app.use('/api/auth', authRoutes);
+app.use('/api/analysis', analysisRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something broke!' });
+    logger.error('Unhandled error:', err);
+    res.status(500).json({ error: 'Internal server error' });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  await dbManager.end();
-  await securityService.cleanup();
-  process.exit(0);
-}); 
+// Initialize database tables
+dbManager.createTables()
+    .then(() => {
+        const port = config.port;
+        app.listen(port, () => {
+            logger.info(`Server running on port ${port}`);
+        });
+    })
+    .catch((error) => {
+        logger.error('Failed to initialize database:', error);
+        process.exit(1);
+    }); 

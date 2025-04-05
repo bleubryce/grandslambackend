@@ -24,7 +24,7 @@ export interface SecurityConfig {
     message: string;
   };
   cors: {
-    origin: string;
+    origin: string | string[];
     methods: string[];
     allowedHeaders: string[];
     exposedHeaders: string[];
@@ -111,13 +111,13 @@ export const securityConfig: SecurityConfig = {
   },
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.ALLOWED_ORIGINS?.split(',') || []
-      : '*',
+      ? process.env.CORS_ORIGIN || 'https://app.grandslam.com'
+      : 'http://localhost:8080',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
     credentials: true,
-    maxAge: 86400, // 24 hours
+    maxAge: 86400 // 24 hours
   },
   csp: {
     directives: {
