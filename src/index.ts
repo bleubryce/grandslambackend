@@ -2,10 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import { AnalysisEngine } from './Analysis/Engine/AnalysisEngine';
 import { DatabaseManager } from './Database/DatabaseManager';
+import { SecurityService } from './Security/service';
+import { securityConfig } from './Security/config';
 import { config } from './config';
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Initialize security service
+const securityService = new SecurityService();
 
 // CORS configuration
 const corsOptions = {
@@ -19,97 +24,43 @@ const corsOptions = {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Basic route for testing
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to Baseball Analytics System' });
-});
+// Apply rate limiting to all routes
+app.use(securityService.getRateLimiterMiddleware());
 
-// Health check route
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    modelEnabled: process.env.MODEL_ENABLED === 'true',
-    modelVersion: process.env.MODEL_VERSION
-  });
-});
-
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
-
-// Initialize components
+// Database connection
 const dbManager = new DatabaseManager(config.database);
 
-async function startServer() {
-  try {
-    // Start server first
-    app.listen(Number(port), '0.0.0.0', () => {
-      console.log(`Server is running on port ${port}`);
-      console.log(`CORS enabled for: ${corsOptions.origin}`);
-      console.log(`Model enabled: ${process.env.MODEL_ENABLED}, version: ${process.env.MODEL_VERSION}`);
-    });
+// Initialize analysis engine after getting a database connection
+let analysisEngine: AnalysisEngine;
+(async () => {
+  const dbClient = await dbManager.getConnection();
+  analysisEngine = new AnalysisEngine(dbClient, config.analysis);
+})().catch(err => {
+  console.error('Failed to initialize analysis engine:', err);
+  process.exit(1);
+});
 
-    // Then try to connect to the database
-    const dbClient = await dbManager.getConnection();
-    const analysisEngine = new AnalysisEngine(dbClient, config.analysis);
+// Routes
+app.use('/api/auth', require('./Security/routes'));
+app.use('/api/analysis', require('./Analysis/routes'));
 
-    // Analysis routes
-    app.get('/api/analysis/team/:teamId', async (req, res) => {
-      try {
-        const teamId = parseInt(req.params.teamId);
-        const results = await analysisEngine.analyzeTeam(teamId);
-        res.json(results);
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to analyze team data' });
-      }
-    });
+// Error handling middleware
+app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something broke!' });
+});
 
-    app.get('/api/analysis/player/:playerId', async (req, res) => {
-      try {
-        const playerId = parseInt(req.params.playerId);
-        const results = await analysisEngine.analyzePlayer(playerId);
-        res.json(results);
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to analyze player data' });
-      }
-    });
+// Start server
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
 
-    app.get('/api/analysis/game/:gameId', async (req, res) => {
-      try {
-        const gameId = parseInt(req.params.gameId);
-        const results = await analysisEngine.analyzeGame(gameId);
-        res.json(results);
-      } catch (error) {
-        res.status(500).json({ error: 'Failed to analyze game data' });
-      }
-    });
-
-    // Model endpoint
-    app.post('/api/analysis/model', async (req, res) => {
-      try {
-        if (process.env.MODEL_ENABLED !== 'true') {
-          return res.status(403).json({ error: 'Model analysis is currently disabled' });
-        }
-        const result = await analysisEngine.analyze(req.body);
-        res.json({
-          modelVersion: process.env.MODEL_VERSION,
-          timestamp: new Date().toISOString(),
-          results: result
-        });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-        res.status(500).json({ error: errorMessage });
-      }
-    });
-
-  } catch (error) {
-    console.error('Failed to connect to database:', error);
-    // Don't exit the process, just log the error
-  }
-}
-
-startServer(); 
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  await dbManager.end();
+  await securityService.cleanup();
+  process.exit(0);
+}); 

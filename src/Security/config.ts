@@ -1,12 +1,114 @@
-export const securityConfig = {
-  // Rate limiting settings
+export interface SecurityConfig {
+  auth: {
+    jwtSecret: string;
+    jwtExpiresIn: string;
+    passwordPolicy: {
+      minLength: number;
+      requireUppercase: boolean;
+      requireLowercase: boolean;
+      requireNumbers: boolean;
+      requireSpecialChars: boolean;
+      maxLength: number;
+      preventCommonPasswords: boolean;
+      preventPersonalInfo: boolean;
+    };
+  };
+  redis: {
+    host: string;
+    port: number;
+    password?: string;
+  };
+  rateLimit: {
+    windowMs: number;
+    max: number;
+    message: string;
+  };
+  cors: {
+    origin: string;
+    methods: string[];
+    allowedHeaders: string[];
+    exposedHeaders: string[];
+    credentials: boolean;
+    maxAge: number;
+  };
+  csp: {
+    directives: {
+      defaultSrc: string[];
+      scriptSrc: string[];
+      styleSrc: string[];
+      fontSrc: string[];
+      imgSrc: string[];
+      connectSrc: string[];
+    };
+  };
+  session: {
+    secret: string;
+    name: string;
+    resave: boolean;
+    saveUninitialized: boolean;
+    cookie: {
+      secure: boolean;
+      httpOnly: boolean;
+      maxAge: number;
+      sameSite: 'strict' | 'lax' | 'none' | undefined;
+    };
+  };
+  headers: {
+    hsts: {
+      maxAge: number;
+      includeSubDomains: boolean;
+      preload: boolean;
+    };
+    noSniff: boolean;
+    xssFilter: boolean;
+    frameguard: {
+      action: 'deny' | 'sameorigin' | 'allow-from' | 'sameorigin' | 'allow-from' | undefined;
+    };
+    referrerPolicy: 'no-referrer' | 'no-referrer-when-downgrade' | 'origin' | 'origin-when-cross-origin' | 'same-origin' | 'strict-origin' | 'strict-origin-when-cross-origin' | 'unsafe-url' | undefined;
+  };
+  validation: {
+    sanitization: {
+      enabled: boolean;
+      options: {
+        stripTags: boolean;
+        stripSpecialChars: boolean;
+        escapeHTML: boolean;
+      };
+    };
+    maxRequestSize: string;
+  };
+  logging: {
+    level: string;
+    securityEvents: boolean;
+    auditTrail: boolean;
+  };
+}
+
+export const securityConfig: SecurityConfig = {
+  auth: {
+    jwtSecret: process.env.JWT_SECRET || 'your-development-jwt-secret',
+    jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    passwordPolicy: {
+      minLength: 12,
+      requireUppercase: true,
+      requireLowercase: true,
+      requireNumbers: true,
+      requireSpecialChars: true,
+      maxLength: 128,
+      preventCommonPasswords: true,
+      preventPersonalInfo: true
+    }
+  },
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD
+  },
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later',
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later'
   },
-
-  // CORS settings
   cors: {
     origin: process.env.NODE_ENV === 'production' 
       ? process.env.ALLOWED_ORIGINS?.split(',') || []
@@ -17,8 +119,6 @@ export const securityConfig = {
     credentials: true,
     maxAge: 86400, // 24 hours
   },
-
-  // Content Security Policy
   csp: {
     directives: {
       defaultSrc: ["'self'"],
@@ -29,22 +129,6 @@ export const securityConfig = {
       connectSrc: ["'self'", 'wss:', 'https:'],
     },
   },
-
-  // Authentication settings
-  auth: {
-    jwtSecret: process.env.JWT_SECRET || 'your-default-jwt-secret-key',
-    jwtExpiresIn: '24h',
-    bcryptSaltRounds: 12,
-    passwordPolicy: {
-      minLength: 8,
-      requireUppercase: true,
-      requireLowercase: true,
-      requireNumbers: true,
-      requireSpecialChars: true,
-    },
-  },
-
-  // Session settings
   session: {
     secret: process.env.SESSION_SECRET || 'your-default-session-secret',
     name: 'sessionId',
@@ -57,8 +141,6 @@ export const securityConfig = {
       sameSite: 'strict' as const,
     },
   },
-
-  // Security headers
   headers: {
     hsts: {
       maxAge: 31536000, // 1 year
@@ -72,8 +154,6 @@ export const securityConfig = {
     },
     referrerPolicy: 'same-origin' as const,
   },
-
-  // Input validation
   validation: {
     sanitization: {
       enabled: true,
@@ -85,8 +165,6 @@ export const securityConfig = {
     },
     maxRequestSize: '10mb',
   },
-
-  // Logging and monitoring
   logging: {
     level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
     securityEvents: true,
