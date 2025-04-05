@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baseball Analytics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --info-color: #0dcaf0;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .navbar {
+            background-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+        
+        .sidebar {
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            height: calc(100vh - 56px);
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 250px;
+            z-index: 100;
+            padding-top: 1rem;
+            overflow-y: auto;
+        }
+        
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            color: var(--dark-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: var(--primary-color);
+        }
+        
+        .sidebar-link i {
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: var(--secondary-color);
+            font-size: 0.9rem;
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            background-color: #f8f9fa;
+            border-bottom: none;
+            font-weight: 600;
+        }
+        
+        .progress {
+            height: 8px;
+            margin-top: 0.5rem;
+        }
+        
+        .player-card {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .player-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .player-stats {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+        }
+        
+        .player-rating {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .filter-bar {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .badge-stat {
+            background-color: #e9ecef;
+            color: var(--dark-color);
+            font-weight: 600;
+            padding: 0.5rem 0.75rem;
+            border-radius: 30px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: inline-block;
+        }
+        
+        .badge-stat span {
+            color: var(--primary-color);
+            margin-left: 0.25rem;
+        }
+        
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .sidebar-link span {
+                display: none;
+            }
+            
+            .sidebar-link i {
+                margin-right: 0;
+                font-size: 1.3rem;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 0;
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="index.html">Baseball Analytics</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-bell"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                3
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <li><a class="dropdown-item" href="#">New player data available</a></li>
+                            <li><a class="dropdown-item" href="#">Model training complete</a></li>
+                            <li><a class="dropdown-item" href="#">Weekly report generated</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> Admin
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><a class="dropdown-item" href="#">Profile</a></li>
+                            <li><a class="dropdown-item" href="#">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <a href="#" class="sidebar-link active">
+            <i class="bi bi-speedometer2"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-person"></i>
+            <span>Player Analysis</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-people"></i>
+            <span>Team Analysis</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-graph-up"></i>
+            <span>Statcast Data</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-lightning"></i>
+            <span>Predictive Models</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-file-earmark-text"></i>
+            <span>Reports</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-search"></i>
+            <span>Player Search</span>
+        </a>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-gear"></i>
+            <span>Settings</span>
+        </a>
+        <hr>
+        <a href="#" class="sidebar-link">
+            <i class="bi bi-question-circle"></i>
+            <span>Help & Support</span>
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="mb-0">Dashboard</h1>
+            <div>
+                <button class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <button class="btn btn-primary">
+                    <i class="bi bi-plus"></i> New Analysis
+                </button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar d-flex flex-wrap align-items-center">
+            <div class="me-3 mb-2 mb-md-0">
+                <label class="form-label mb-0 me-2">Season:</label>
+                <select class="form-select form-select-sm d-inline-block w-auto">
+                    <option>2025</option>
+                    <option>2024</option>
+                    <option>2023</option>
+                    <option>2022</option>
+                </select>
+            </div>
+            <div class="me-3 mb-2 mb-md-0">
+                <label class="form-label mb-0 me-2">Team:</label>
+                <select class="form-select form-select-sm d-inline-block w-auto">
+                    <option>All Teams</option>
+                    <option>NYY</option>
+                    <option>BOS</option>
+                    <option>LAD</option>
+                    <option>CHC</option>
+                </select>
+            </div>
+            <div class="me-3 mb-2 mb-md-0">
+                <label class="form-label mb-0 me-2">Position:</label>
+                <select class="form-select form-select-sm d-inline-block w-auto">
+                    <option>All Positions</option>
+                    <option>Pitcher</option>
+                    <option>Catcher</option>
+                    <option>Infield</option>
+                    <option>Outfield</option>
+                </select>
+            </div>
+            <button class="btn btn-sm btn-primary ms-auto">Apply Filters</button>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="row">
+            <div class="col-xl-3 col-md-6">
+                <div class="card">
+                    <div class="stat-card">
+                        <i class="bi bi-person-check text-primary mb-3" style="font-size: 2rem;"></i>
+                        <div class="stat-value text-primary">865</div>
+                        <div class="stat-label">Active Players</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card">
+                    <div class="stat-card">
+                        <i class="bi bi-graph-up-arrow text-success mb-3" style="font-size: 2rem;"></i>
+                        <div class="stat-value text-success">92.7%</div>
+                        <div class="stat-label">Model Accuracy</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card">
+                    <div class="stat-card">
+                        <i class="bi bi-database-check text-info mb-3" style="font-size: 2rem;"></i>
+                        <div class="stat-value text-info">22,776</div>
+                        <div class="stat-label">Statcast Records</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card">
+                    <div class="stat-card">
+                        <i class="bi bi-calendar-check text-warning mb-3" style="font-size: 2rem;"></i>
+                        <div class="stat-value text-warning">Daily</div>
+                        <div class="stat-label">Data Updates</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Performance Trends</span>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-secondary active">Batting</button>
+                            <button type="button" class="btn btn-outline-secondary">Pitching</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        Metric Distribution
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Player Rankings and Statcast Data -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Top Players by WAR</span>
+                        <button class="btn btn-sm btn-outline-secondary">View All</button>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="player-card">
+                            <div class="player-avatar">AJ</div>
+                            <div class="player-info">
+                                <div class="player-name">Aaron Judge</div>
+                                <div class="player-stats">NYY • RF • 33 yrs</div>
+                            </div>
+                            <div class="player-rating">8.2</div>
+                        </div>
+                        <div class="player-card">
+                            <div class="player-avatar">SO</div>
+                            <div class="player-info">
+                                <div class="player-name">Shohei Ohtani</div>
+                                <div class="player-stats">LAD • DH/P • 31 yrs</div>
+                            </div>
+                            <div class="player-rating">7.9</div>
+                        </div>
+                        <div class="player-card">
+                            <div class="player-avatar">JR</div>
+                            <div class="player-info">
+                                <div class="player-name">Juan Soto</div>
+                                <div class="player-stats">NYY • LF • 27 yrs</div>
+                            </div>
+                            <div class="player-rating">7.5</div>
+                        </div>
+                        <div class="player-card">
+                            <div class="player-avatar">MB</div>
+                            <div class="player-info">
+                                <div class="player-name">Mookie Betts</div>
+                                <div class="player-stats">LAD • RF • 33 yrs</div>
+                            </div>
+                            <div class="player-rating">7.3</div>
+                        </div>
+                        <div class="player-card">
+                            <div class="player-avatar">TA</div>
+                            <div class="player-info">
+                                <div class="player-name">Trea Turner</div>
+                                <div class="player-stats">PHI • SS • 32 yrs</div>
+                            </div>
+                            <div class="player-rating">6.8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        Statcast Insights
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <h6 class="mb-3">Exit Velocity Leaders</h6>
+                            <div class="d-flex flex-wrap">
+                                <div class="badge-stat">Aaron Judge <span>96.8 mph</span></div>
+                                <div class="badge-stat">Giancarlo Stanton <span>95.9 mph</span></div>
+                                <div class="badge-stat">Vladimir Guerrero Jr. <span>94.7 mph</span></div>
+                                <div class="badge-stat">Yordan Alvarez <span>94.2 mph</span></div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <h6 class="mb-3">Barrel % Leaders</h6>
+                            <div class="d-flex flex-wrap">
+                                <div class="badge-stat">Aaron Judge <span>25.4%</span></div>
+                                <div class="badge-stat">Kyle Schwarber <span>19.8%</span></div>
+                                <div class="badge-stat">Shohei Ohtani <span>18.9%</span></div>
+                                <div class="badge-stat">Yordan Alvarez <span>17.2%</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h6 class="mb-3">Fastball Velocity Leaders</h6>
+                            <div class="d-flex flex-wrap">
+                                <div class="badge-stat">Hunter Greene <span>100.2 mph</span></div>
+                                <div class="badge-stat">Jordan Hicks <span>99.8 mph</span></div>
+                                <div class="badge-stat">Jhoan Duran <span>99.6 mph</span></div>
+                                <div class="badge-stat">Emmanuel Clase <span>99.5 mph</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Performance and Recent Activity -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        Team Performance
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Team</th>
+                                        <th>W-L</th>
+                                        <th>Win %</th>
+                                        <th>RS</th>
+                                        <th>RA</th>
+                                        <th>Run Diff</th>
+                                        <th>Playoff Odds</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>LAD</td>
+                                        <td>92-70</td>
+                                        <td>.568</td>
+                                        <td>780</td>
+                                        <td>650</td>
+                                        <td>+130</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">92%</span>
+                                                <div class="progress flex-grow-1">
+                                                    <div class="progress-bar bg-success" style="width: 92%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>NYY</td>
+                                        <td>90-72</td>
+                                        <td>.556</td>
+                                        <td>760</td>
+                                        <td>645</td>
+                                        <td>+115</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">88%</span>
+                                                <div class="progress flex-grow-1">
+                                                    <div class="progress-bar bg-success" style="width: 88%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>ATL</td>
+                                        <td>89-73</td>
+                                        <td>.549</td>
+                                        <td>740</td>
+                                        <td>650</td>
+                                        <td>+90</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">85%</span>
+                                                <div class="progress flex-grow-1">
+                                                    <div class="progress-bar bg-success" style="width: 85%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>HOU</td>
+                                        <td>88-74</td>
+                                        <td>.543</td>
+                                        <td>720</td>
+                                        <td>660</td>
+                                        <td>+60</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">80%</span>
+                                                <div class="progress flex-grow-1">
+                                                    <div class="progress-bar bg-success" style="width: 80%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>PHI</td>
+                                        <td>87-75</td>
+                                        <td>.537</td>
+                                        <td>730</td>
+                                        <td>680</td>
+                                        <td>+50</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">75%</span>
+                                                <div class="progress flex-grow-1">
+                                                    <div class="progress-bar bg-primary" style="width: 75%"></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        Recent Activity
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">New Statcast Data Available</h6>
+                                    <small>3 hours ago</small>
+                                </div>
+                                <p class="mb-1">Latest Statcast data has been processed and is ready for analysis.</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">WAR Model Updated</h6>
+                                    <small>Yesterday</small>
+                                </div>
+                                <p class="mb-1">The WAR prediction model has been retrained with the latest data.</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Weekly Report Generated</h6>
+                                    <small>2 days ago</small>
+                                </div>
+                                <p class="mb-1">The weekly performance report is now available for review.</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Player Database Updated</h6>
+                                    <small>3 days ago</small>
+                                </div>
+                                <p class="mb-1">New player information has been added to the database.</p>
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">System Maintenance Complete</h6>
+                                    <small>1 week ago</small>
+                                </div>
+                                <p class="mb-1">Scheduled system maintenance has been completed successfully.</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Performance Chart
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(performanceCtx, {
+            type: 'line',
+            data: {
+                labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
+                datasets: [
+                    {
+                        label: 'AVG',
+                        data: [0.265, 0.272, 0.280, 0.275, 0.268, 0.270],
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'OBP',
+                        data: [0.335, 0.342, 0.350, 0.345, 0.338, 0.340],
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'SLG',
+                        data: [0.425, 0.438, 0.455, 0.442, 0.430, 0.435],
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        min: 0.2,
+                        max: 0.5
+                    }
+                }
+            }
+        });
+
+        // Distribution Chart
+        const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'polarArea',
+            data: {
+                labels: ['Batting', 'Pitching', 'Fielding', 'Baserunning', 'Intangibles'],
+                datasets: [{
+                    data: [35, 25, 20, 15, 5],
+                    backgroundColor: [
+                        'rgba(13, 110, 253, 0.7)',
+                        'rgba(25, 135, 84, 0.7)',
+                        'rgba(220, 53, 69, 0.7)',
+                        'rgba(255, 193, 7, 0.7)',
+                        'rgba(13, 202, 240, 0.7)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

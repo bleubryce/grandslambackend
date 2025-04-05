@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+check codebase for existing files before building new ones do not start one task until the task youre working on is fully completed 100 percent do not create any reduntant code or duplicate files 
+
