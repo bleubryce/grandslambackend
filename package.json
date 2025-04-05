@@ -1,7 +1,7 @@
 {
-  "name": "baseball-analytics-system",
+  "name": "grand-slam-analytics-backend",
   "version": "1.0.0",
-  "description": "A comprehensive baseball analytics system with ML predictions",
+  "description": "Backend server for the Grand Slam Baseball Analytics System",
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/index.ts",

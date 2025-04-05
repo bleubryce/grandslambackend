@@ -1,17 +1,86 @@
-# Baseball Analytics System
+# Grand Slam Baseball Analytics System
 
-A full-stack application for baseball data analysis and predictions.
+This is a monorepo containing both the frontend and backend applications for the Grand Slam Baseball Analytics System.
 
 ## Project Structure
 
 ```
 /
+├── package.json          # Backend package.json
 ├── src/
-│   ├── UI/              # Frontend React application
-│   ├── Analysis/        # Analysis engine and models
-│   ├── Database/        # Database management
-│   └── Security/        # Authentication and security
+│   ├── UI/              # Frontend application
+│   │   ├── package.json # Frontend package.json
+│   │   └── ...         # Frontend source files
+│   └── ...             # Backend source files
 ```
+
+## Getting Started
+
+### Backend
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npm run dev
+```
+
+### Frontend
+
+1. Navigate to the frontend directory:
+```bash
+cd src/UI
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+4. Build for development:
+```bash
+npm run build:dev
+```
+
+5. Build for production:
+```bash
+npm run build
+```
+
+## Scripts
+
+### Backend Scripts
+- `npm run dev` - Start the backend development server
+- `npm run build` - Build the backend
+- `npm test` - Run all tests
+
+### Frontend Scripts
+- `npm run dev` - Start the frontend development server
+- `npm run build:dev` - Build frontend for development
+- `npm run build` - Build frontend for production
+- `npm run preview` - Preview the production build
+
+## Authentication
+
+The system includes a complete authentication system with:
+- User registration with email verification
+- JWT-based authentication
+- Role-based access control
+- Password reset functionality
+- Remember me feature
+- Protected routes
+
+## Database
+
+The system uses PostgreSQL for data storage. Make sure to set up your database connection in the backend's environment variables.
 
 ## Features
 

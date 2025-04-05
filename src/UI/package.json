@@ -1,7 +1,8 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "grand-slam-analytics-frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Frontend application for the Grand Slam Baseball Analytics System",
   "type": "module",
   "scripts": {
     "dev": "vite",
