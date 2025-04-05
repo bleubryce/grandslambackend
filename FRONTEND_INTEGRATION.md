@@ -308,4 +308,73 @@ socket.emit("subscribeToPlayer", { playerId: 456 });
 // Unsubscribe when done
 socket.emit("unsubscribeFromGame", { gameId: 123 });
 socket.emit("unsubscribeFromPlayer", { playerId: 456 });
-``` 
+```
+
+## Setup Instructions
+
+1. Clone the repository:
+```bash
+git clone https://github.com/bleubryce/grand-slam-analytics-frontend.git
+cd grand-slam-analytics-frontend
+```
+
+2. Install dependencies:
+```bash
+# Install backend dependencies
+npm install
+
+# Install frontend dependencies
+cd src/UI
+npm install
+```
+
+3. Set up environment variables:
+- Copy `.env.example` to `.env` in both root and `src/UI` directories
+- Update the variables as needed:
+```
+# Backend (.env)
+PORT=3000
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=baseball_analytics
+DB_USER=postgres
+DB_PASSWORD=postgres
+CORS_ORIGIN=http://localhost:3000
+MODEL_ENABLED=true
+MODEL_VERSION=1.0
+JWT_SECRET=your-jwt-secret
+
+# Frontend (src/UI/.env)
+VITE_BACKEND_API_URL=http://localhost:3000
+VITE_APP_TITLE=Grand Slam Analytics
+VITE_MODEL_ENABLED=true
+VITE_MODEL_VERSION=1.0
+```
+
+4. Start the development servers:
+```bash
+# Terminal 1 - Backend
+npm run dev
+
+# Terminal 2 - Frontend
+cd src/UI
+npm run dev
+```
+
+5. Access the application:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3000/api
+- API Documentation: http://localhost:3000/api-docs
+
+The frontend team can now:
+- Use the API services in `src/UI/src/services/`
+- Use the React hooks in `src/UI/src/hooks/`
+- Find all TypeScript interfaces in `src/UI/src/types/`
+- Run tests using `npm test`
+- Check API documentation in `FRONTEND_INTEGRATION.md`
+
+Would you like me to:
+1. Add any specific setup instructions for your frontend team?
+2. Create additional documentation?
+3. Set up CI/CD pipelines?
+4. Add more test cases? 
