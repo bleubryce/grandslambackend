@@ -1,0 +1,256 @@
+name: Baseball Analytics CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18.x'
+  POSTGRES_VERSION: '14'
+  REDIS_VERSION: '6'
+
+jobs:
+  lint:
+    name: Code Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: |
+          cd src/UI
+          npm ci
+      
+      - name: Run ESLint
+        run: |
+          cd src/UI
+          npm run lint
+      
+      - name: Run TypeScript Check
+        run: |
+          cd src/UI
+          npm run type-check
+
+  test:
+    name: Unit & Integration Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: baseball_analytics_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: |
+          cd src/UI
+          npm ci
+      
+      - name: Run Unit Tests
+        run: |
+          cd src/UI
+          npm run test:unit
+      
+      - name: Run Integration Tests
+        run: |
+          cd src/UI
+          npm run test:integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/baseball_analytics_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret
+          NODE_ENV: test
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: test
+    
+    services:
+      postgres:
+        image: postgres:${{ env.POSTGRES_VERSION }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: baseball_analytics_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:${{ env.REDIS_VERSION }}
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: |
+          cd src/UI
+          npm ci
+      
+      - name: Build Application
+        run: |
+          cd src/UI
+          npm run build
+      
+      - name: Run E2E Tests
+        run: |
+          cd src/UI
+          npm run test:e2e
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/baseball_analytics_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-secret
+          NODE_ENV: test
+
+  build:
+    name: Build & Package
+    runs-on: ubuntu-latest
+    needs: [lint, test, e2e]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: |
+          cd src/UI
+          npm ci
+      
+      - name: Build Application
+        run: |
+          cd src/UI
+          npm run build
+      
+      - name: Package Application
+        run: |
+          cd src/UI
+          tar -czf ../../baseball-analytics.tar.gz dist/
+      
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: baseball-analytics
+          path: baseball-analytics.tar.gz
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: baseball-analytics
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Deploy to Staging
+        run: |
+          aws s3 cp baseball-analytics.tar.gz s3://baseball-analytics-staging/
+          aws elasticbeanstalk create-application-version \
+            --application-name baseball-analytics \
+            --version-label staging-${{ github.sha }} \
+            --source-bundle S3Bucket=baseball-analytics-staging,S3Key=baseball-analytics.tar.gz
+          aws elasticbeanstalk update-environment \
+            --environment-name baseball-analytics-staging \
+            --version-label staging-${{ github.sha }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://baseball-analytics.com
+    
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: baseball-analytics
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Deploy to Production
+        run: |
+          aws s3 cp baseball-analytics.tar.gz s3://baseball-analytics-production/
+          aws elasticbeanstalk create-application-version \
+            --application-name baseball-analytics \
+            --version-label prod-${{ github.sha }} \
+            --source-bundle S3Bucket=baseball-analytics-production,S3Key=baseball-analytics.tar.gz
+          aws elasticbeanstalk update-environment \
+            --environment-name baseball-analytics-production \
+            --version-label prod-${{ github.sha }} 

@@ -1,0 +1,152 @@
+.navbar {
+    background-color: #0d2b56;
+}
+
+.sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    width: 250px;
+    height: calc(100vh - 56px);
+    background-color: #f8f9fa;
+    padding-top: 20px;
+    overflow-y: auto;
+    z-index: 100;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.sidebar-link:hover {
+    background-color: #e9ecef;
+    color: #0d2b56;
+}
+
+.sidebar-link.active {
+    background-color: #0d2b56;
+    color: white;
+}
+
+.sidebar-link i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 20px;
+}
+
+.card {
+    margin-bottom: 20px;
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    font-weight: 500;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.quick-access-card {
+    transition: all 0.3s;
+    text-decoration: none;
+    color: inherit;
+}
+
+.quick-access-card:hover {
+    transform: translateY(-5px);
+    color: inherit;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 60px;
+    }
+    
+    .sidebar-link span {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 60px;
+    }
+}
+
+/* Filter bar styles */
+.filter-bar {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+/* Table styles */
+.table th {
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+/* Progress bar styles */
+.progress {
+    height: 10px;
+    margin-bottom: 5px;
+}
+
+/* Border left utility */
+.border-left-primary {
+    border-left: 4px solid #0d6efd;
+}
+
+.border-left-success {
+    border-left: 4px solid #198754;
+}
+
+.border-left-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+.border-left-warning {
+    border-left: 4px solid #ffc107;
+}
+
+.border-left-danger {
+    border-left: 4px solid #dc3545;
+}
+
+/* Text colors */
+.text-gray-300 {
+    color: #dee2e6;
+}
+
+.text-gray-800 {
+    color: #343a40;
+}

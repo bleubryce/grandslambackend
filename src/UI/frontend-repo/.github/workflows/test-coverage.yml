@@ -1,0 +1,63 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Use Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with coverage
+      run: npm run test:coverage:check
+
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        verbose: true
+
+    - name: Store coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 14
+
+    - name: Check coverage thresholds
+      run: |
+        COVERAGE_SUMMARY=$(cat coverage/coverage-summary.json)
+        STATEMENTS=$(echo $COVERAGE_SUMMARY | jq '.total.statements.pct')
+        BRANCHES=$(echo $COVERAGE_SUMMARY | jq '.total.branches.pct')
+        FUNCTIONS=$(echo $COVERAGE_SUMMARY | jq '.total.functions.pct')
+        LINES=$(echo $COVERAGE_SUMMARY | jq '.total.lines.pct')
+
+        if (( $(echo "$STATEMENTS < 90" | bc -l) )) || \
+           (( $(echo "$BRANCHES < 90" | bc -l) )) || \
+           (( $(echo "$FUNCTIONS < 90" | bc -l) )) || \
+           (( $(echo "$LINES < 90" | bc -l) )); then
+          echo "Coverage thresholds not met:"
+          echo "Statements: $STATEMENTS% (required: 90%)"
+          echo "Branches: $BRANCHES% (required: 90%)"
+          echo "Functions: $FUNCTIONS% (required: 90%)"
+          echo "Lines: $LINES% (required: 90%)"
+          exit 1
+        fi 

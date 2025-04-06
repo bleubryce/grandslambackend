@@ -1,151 +1,143 @@
-# Baseball Data Analysis System
+# Baseball Analytics System
 
-A comprehensive system for analyzing baseball statistics and making predictions using machine learning models.
-
-## Features
-
-- User authentication and authorization
-- Real-time data analysis
-- Machine learning model integration
-- Interactive dashboard
-- Role-based access control
-- Rate limiting and security features
-
-## Tech Stack
-
-### Backend
-- Node.js
-- TypeScript
-- Express.js
-- PostgreSQL
-- Redis
-- JWT Authentication
-
-### Frontend
-- React
-- TypeScript
-- Vite
-- Material-UI
-- Chart.js
-- TensorFlow.js
-
-## Prerequisites
-
-- Node.js (v18 or higher)
-- PostgreSQL (v14 or higher)
-- Redis (v6 or higher)
-- npm or yarn
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd baseball-data-analysis-system
-```
-
-2. Install backend dependencies:
-```bash
-npm install
-```
-
-3. Install frontend dependencies:
-```bash
-cd src/UI
-npm install
-```
-
-4. Create environment files:
-```bash
-cp .env.example .env
-cd src/UI
-cp .env.example .env
-```
-
-5. Set up the database:
-```bash
-# Start PostgreSQL service
-# Create database and user according to .env configuration
-```
-
-6. Start Redis server:
-```bash
-# Start Redis service according to your OS
-```
-
-## Development
-
-1. Start the backend server:
-```bash
-npm run dev
-```
-
-2. Start the frontend development server:
-```bash
-cd src/UI
-npm run dev
-```
-
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
+A full-stack application for baseball data analysis and predictions.
 
 ## Project Structure
 
 ```
-.
+/
 ├── src/
-│   ├── Analysis/       # Analysis and ML model logic
-│   ├── Database/       # Database configuration and models
-│   ├── Logging/        # Logging configuration
-│   ├── Monitoring/     # System monitoring
-│   ├── Security/       # Authentication and authorization
-│   ├── UI/            # Frontend application
-│   └── index.ts       # Main application entry
-├── tests/             # Test files
-├── .env.example       # Example environment variables
-├── .gitignore        # Git ignore rules
-├── package.json      # Project dependencies
-├── tsconfig.json    # TypeScript configuration
-└── README.md        # Project documentation
+│   ├── UI/              # Frontend React application
+│   ├── Analysis/        # Analysis engine and models
+│   ├── Database/        # Database management
+│   └── Security/        # Authentication and security
 ```
 
-## Environment Variables
+## Features
 
-### Backend (.env)
+- Team Management
+- Player Analysis
+- Game Statistics
+- Performance Metrics
+- Report Generation
+- Real-time Analytics
+- Data Visualization
+- Historical Data Analysis
+
+## Prerequisites
+
+- Node.js (v18 or higher)
+- npm (v9 or higher)
+- PostgreSQL (v14 or higher)
+- Redis (v6 or higher)
+- Docker & Docker Compose
+- AWS Account (for backups)
+
+## Quick Start
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-username/baseball-analytics.git
+cd baseball-analytics
 ```
-PORT=3001
-NODE_ENV=development
+
+2. Install dependencies:
+```bash
+# Install backend dependencies
+npm install
+
+# Install frontend dependencies
+cd src/UI
+npm install
+```
+
+3. Set up environment variables:
+```bash
+# Backend (.env)
+PORT=3000
 DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=baseball_analytics
 DB_USER=postgres
 DB_PASSWORD=postgres
-REDIS_HOST=localhost
-REDIS_PORT=6379
-JWT_SECRET=your-secret-key
-```
+CORS_ORIGIN=http://localhost:3000
+MODEL_ENABLED=true
+MODEL_VERSION=1.0
+JWT_SECRET=your-jwt-secret
 
-### Frontend (src/UI/.env)
-```
-VITE_BACKEND_API_URL=http://localhost:3001
+# Frontend (src/UI/.env)
+VITE_BACKEND_API_URL=http://localhost:3000
+VITE_APP_TITLE=Grand Slam Analytics
 VITE_MODEL_ENABLED=true
 VITE_MODEL_VERSION=1.0
-VITE_ENABLE_ANALYTICS=true
-VITE_ENABLE_AUTH=true
+```
+
+4. Start the development servers:
+```bash
+# Start backend (from root directory)
+npm run dev
+
+# Start frontend (from src/UI directory)
+npm run dev
+```
+
+5. Access the application:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3000/api
+- API Documentation: http://localhost:3000/api-docs
+
+## Development
+
+### Backend Development
+- API routes are in `src/index.ts`
+- Database models are in `src/Database/`
+- Analysis engine is in `src/Analysis/`
+
+### Frontend Development
+- React components are in `src/UI/src/components/`
+- API services are in `src/UI/src/services/`
+- Types are in `src/UI/src/types/`
+
+## Testing
+
+```bash
+# Run backend tests
+npm test
+
+# Run frontend tests
+cd src/UI
+npm test
+```
+
+## Deployment
+
+1. Build the application:
+```bash
+# Build backend
+npm run build
+
+# Build frontend
+cd src/UI
+npm run build
+```
+
+2. Set up production environment variables
+3. Deploy using Docker:
+```bash
+docker-compose up -d
 ```
 
 ## API Documentation
 
-The API documentation is available at `/api/docs` when running in development mode.
+See `FRONTEND_INTEGRATION.md` for detailed API documentation.
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
