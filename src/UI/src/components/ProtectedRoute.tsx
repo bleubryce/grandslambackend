@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import authService from '@/services/authService';
+import { CircularProgress } from '@mui/material';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,27 +12,45 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRoles = [],
 }) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const [isValidating, setIsValidating] = useState(true);
+  const [isValid, setIsValid] = useState(false);
   const location = useLocation();
 
-  // Show loading state
-  if (isLoading) {
-    return <div>Loading...</div>;
+  useEffect(() => {
+    const validateSession = async () => {
+      try {
+        const isValidToken = await authService.validateToken();
+        if (isValidToken) {
+          if (requiredRoles && requiredRoles.length > 0) {
+            setIsValid(authService.hasAnyRole(requiredRoles));
+          } else {
+            setIsValid(true);
+          }
+        } else {
+          setIsValid(false);
+        }
+      } catch (error) {
+        console.error('Session validation error:', error);
+        setIsValid(false);
+      } finally {
+        setIsValidating(false);
+      }
+    };
+
+    validateSession();
+  }, [requiredRoles]);
+
+  if (isValidating) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </div>
+    );
   }
 
-  // Not authenticated - redirect to login
-  if (!isAuthenticated) {
+  if (!isValid) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check role-based access if roles are specified
-  if (requiredRoles.length > 0 && user) {
-    const hasRequiredRole = requiredRoles.includes(user.role);
-    if (!hasRequiredRole) {
-      return <Navigate to="/unauthorized" replace />;
-    }
-  }
-
-  // Render the protected content
   return <>{children}</>;
 }; 

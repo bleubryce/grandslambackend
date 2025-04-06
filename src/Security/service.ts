@@ -1,12 +1,10 @@
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { securityConfig } from './config';
-import { createLogger } from '../utils/logger';
-import { PasswordValidator, PasswordPolicy } from './PasswordValidator';
-import Redis from 'ioredis';
+import { logger } from '../Logging/Logger';
+import { PasswordValidator } from './PasswordValidator';
+import { Redis } from 'ioredis';
 import { RateLimiter } from './RateLimiter';
-
-const logger = createLogger('security-service');
 
 export interface User {
   id: string;
@@ -17,46 +15,35 @@ export interface User {
 
 export class SecurityService {
   private readonly jwtSecret: string;
-  private readonly passwordValidator: PasswordValidator;
-  private readonly redis: Redis;
-  private readonly rateLimiter: RateLimiter;
+  private redis: Redis;
+  private rateLimiter: RateLimiter;
+  private passwordValidator: PasswordValidator;
 
-  constructor() {
+  constructor(redis: Redis) {
     this.jwtSecret = process.env.JWT_SECRET || securityConfig.auth.jwtSecret;
     
-    // Initialize password validator with policy
-    const passwordPolicy: PasswordPolicy = {
-      minLength: 12,
+    this.redis = redis;
+    
+    this.passwordValidator = new PasswordValidator({
+      minLength: 8,
       requireUppercase: true,
       requireLowercase: true,
       requireNumbers: true,
-      requireSpecialChars: true,
-      maxLength: 128,
-      preventCommonPasswords: true,
-      preventPersonalInfo: true
-    };
-    this.passwordValidator = new PasswordValidator(passwordPolicy);
-
-    // Initialize Redis client
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
+      requireSpecialChars: true
     });
 
-    // Initialize rate limiter
-    this.rateLimiter = new RateLimiter(this.redis, {
+    this.rateLimiter = new RateLimiter({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100 // limit each IP to 100 requests per windowMs
+      maxRequests: 100 // limit each IP to 100 requests per windowMs
     });
   }
 
-  async validatePassword(password: string, personalInfo?: { [key: string]: string }): Promise<{ isValid: boolean; errors: string[] }> {
-    return this.passwordValidator.validate(password, personalInfo);
+  validatePassword(password: string): { isValid: boolean; errors: string[] } {
+    return this.passwordValidator.validate(password);
   }
 
   getPasswordRequirements(): string[] {
-    return this.passwordValidator.getPasswordRequirements();
+    return this.passwordValidator.getRequirements();
   }
 
   async hashPassword(password: string): Promise<string> {
@@ -115,8 +102,38 @@ export class SecurityService {
     return sanitizedUser;
   }
 
-  getRateLimiterMiddleware() {
-    return this.rateLimiter.middleware;
+  async isRateLimited(ip: string): Promise<boolean> {
+    try {
+      return await this.rateLimiter.isLimited(ip);
+    } catch (error) {
+      logger.error('Error checking rate limit:', error);
+      return false;
+    }
+  }
+
+  async recordAttempt(ip: string): Promise<void> {
+    try {
+      await this.rateLimiter.increment(ip);
+    } catch (error) {
+      logger.error('Error recording attempt:', error);
+    }
+  }
+
+  async resetAttempts(ip: string): Promise<void> {
+    try {
+      await this.rateLimiter.reset(ip);
+    } catch (error) {
+      logger.error('Error resetting attempts:', error);
+    }
+  }
+
+  async getRemainingAttempts(ip: string): Promise<number> {
+    try {
+      return await this.rateLimiter.getRemainingRequests(ip);
+    } catch (error) {
+      logger.error('Error getting remaining attempts:', error);
+      return 0;
+    }
   }
 
   async cleanup() {

@@ -56,7 +56,7 @@ export interface Config {
 }
 
 export const config: Config = {
-    port: parseInt(process.env.PORT || '3000', 10),
+    port: parseInt(process.env.PORT || '3001', 10),
     database: {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432', 10),
@@ -81,12 +81,12 @@ export const config: Config = {
             requireSpecialChars: process.env.PASSWORD_REQUIRE_SPECIAL !== 'false'
         },
         cors: {
-            origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8080'],
+            origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'],
             methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization'],
-            exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+            exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining'],
             credentials: true,
-            maxAge: 86400 // 24 hours
+            maxAge: 86400
         }
     },
     analysis: {

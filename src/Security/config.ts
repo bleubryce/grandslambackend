@@ -110,11 +110,11 @@ export const securityConfig: SecurityConfig = {
     message: 'Too many requests from this IP, please try again later'
   },
   cors: {
-    origin: process.env.NODE_ENV === 'production' 
-      ? process.env.CORS_ORIGIN || 'https://app.grandslam.com'
-      : 'http://localhost:8080',
+    origin: process.env.NODE_ENV === 'production'
+      ? process.env.CORS_ORIGIN?.split(',') || ['https://app.grandslam.com']
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
     credentials: true,
     maxAge: 86400 // 24 hours

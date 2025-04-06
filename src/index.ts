@@ -2,46 +2,40 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { config } from './config';
-import { logger } from './utils/logger';
-import { DatabaseManager } from './Database/DatabaseManager';
-import authRoutes from './Security/routes';
-import analysisRoutes from './Analysis/routes';
+import { logger } from './Logging/Logger';
+import { setupRoutes } from './routes';
+import { setupDatabase } from './Database/setup';
+import { setupSecurity } from './Security/setup';
 
 const app = express();
 
-// Initialize database
-const dbManager = new DatabaseManager(config.database);
-
-// Middleware
+// Security middleware
 app.use(helmet());
 app.use(cors(config.security.cors));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/analysis', analysisRoutes);
+// Setup security features
+setupSecurity(app);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Setup routes
+setupRoutes(app);
 
-// Error handling middleware
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    logger.error('Unhandled error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-});
+// Start server
+const PORT = config.port || 3001;
 
-// Initialize database tables
-dbManager.createTables()
-    .then(() => {
-        const port = config.port;
-        app.listen(port, () => {
-            logger.info(`Server running on port ${port}`);
-        });
-    })
-    .catch((error) => {
-        logger.error('Failed to initialize database:', error);
-        process.exit(1);
-    }); 
+async function startServer() {
+  try {
+    // Initialize database
+    await setupDatabase();
+    logger.info('Database connection established');
+
+    app.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer(); 

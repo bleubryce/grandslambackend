@@ -13,6 +13,7 @@ interface Config {
     enabled: boolean;
     version: string;
     healthCheckInterval: number;
+    supportedTypes: string[];
   };
   features: {
     analytics: boolean;
@@ -24,17 +25,18 @@ const config: Config = {
   api: {
     baseUrl: import.meta.env.VITE_BACKEND_API_URL || 'http://localhost:3001',
     endpoints: {
-      teams: import.meta.env.VITE_API_TEAMS_ENDPOINT || '/api/analysis/team',
-      players: import.meta.env.VITE_API_PLAYERS_ENDPOINT || '/api/analysis/player',
-      games: import.meta.env.VITE_API_GAMES_ENDPOINT || '/api/analysis/game',
-      analysis: import.meta.env.VITE_API_ANALYSIS_ENDPOINT || '/analyze',
-      model: import.meta.env.VITE_MODEL_ENDPOINT || '/api/analysis/model',
+      teams: '/api/analysis/team',
+      players: '/api/analysis/player',
+      games: '/api/analysis/game',
+      analysis: '/api/analysis',
+      model: '/api/model',
     },
   },
   model: {
     enabled: import.meta.env.VITE_MODEL_ENABLED === 'true',
     version: import.meta.env.VITE_MODEL_VERSION || '1.0',
     healthCheckInterval: 30000, // Check model health every 30 seconds
+    supportedTypes: ['team', 'player', 'game'],
   },
   features: {
     analytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',

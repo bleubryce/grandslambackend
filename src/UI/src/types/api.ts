@@ -210,4 +210,34 @@ export interface Stats {
   innings_pitched: number | null;
   earned_runs: number | null;
   created_at: string;
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data: T;
+  error?: string;
+}
+
+export interface ModelMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  timestamp: string;
+  modelType: string;
+}
+
+export interface ModelParameters {
+  learningRate?: number;
+  epochs?: number;
+  batchSize?: number;
+  layers?: number[];
+  activationFunction?: string;
+}
+
+export interface PredictionResult {
+  prediction: any;
+  confidence: number;
+  modelVersion: string;
+  timestamp: string;
 } 

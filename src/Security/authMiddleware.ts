@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { Redis } from 'ioredis';
 import { SecurityService, User } from './service';
-import { createLogger } from '../utils/logger';
+import { logger } from '../Logging/Logger';
 
 // Extend Express Request type
 declare global {
@@ -11,8 +12,15 @@ declare global {
   }
 }
 
-const logger = createLogger('auth-middleware');
-const securityService = new SecurityService();
+const redisConfig = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  password: process.env.REDIS_PASSWORD || undefined
+};
+
+const redis = new Redis(redisConfig);
+
+const securityService = new SecurityService(redis);
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -71,4 +79,25 @@ export const requireAllRoles = (roles: string[]) => {
 
     next();
   };
-}; 
+};
+
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+
+  try {
+    if (await securityService.isRateLimited(ip)) {
+      const remaining = await securityService.getRemainingAttempts(ip);
+      return res.status(429).json({
+        error: 'Too many requests',
+        message: 'Please try again later',
+        remainingAttempts: remaining
+      });
+    }
+
+    await securityService.recordAttempt(ip);
+    next();
+  } catch (error) {
+    logger.error('Auth middleware error:', error);
+    next(error);
+  }
+} 
